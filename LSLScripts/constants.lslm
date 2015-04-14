@@ -1,0 +1,43 @@
+$module ()
+integer DOMENU                 = -800; // dialog control back to npose
+integer EXTERNAL_MENU_BUTTON   = -802; // TODO: we have to get rid of theses message
+integer DIALOG                 = -900; // start dialog
+integer DIALOG_RESPONSE        = -901; // eval dialog response
+
+integer XCITE_COMMAND=-8040;
+
+integer XCITE_DUMP_DEBUG_STRING=-8048;
+
+integer SEAT_UPDATE=35353;
+integer MEM_USAGE=34334;
+
+
+integer XCITEQ_ADD_AROUSAL=20001;
+//str: legacy name|value|maximum arousal|text, see below for placeholders|kink(string: more infos needed)
+integer XCITEQ_CHASTITY_ON=20002;
+//noParams
+integer XCITEQ_CHASTITY_OFF=20003;
+//noParams
+integer XCITEQ_ATTACHMENT_NAME=20010;
+//str: legacy name
+integer XCITEQ_AROUSAL_UPDATE_START=20012;
+//str: legacy name
+integer XCITEQ_AROUSAL_UPDATE_STOP=20014;
+//noParams
+integer XCITEQ_TILT_FORCE=20020;
+//str: legacy name|tiltDegree (negative values: downward; positive values: upwards)
+integer XCITEQ_TILT_RESTORE=20014;
+//str: legacy name 
+//this is the same number as the XCITEQ_AROUSAL_UPDATE_STOP. This is stated in Builders information, check if this is true
+
+integer XCITER_ATTACHMENT_NAME=10011;
+//str: cock or clit
+integer XCITER_AROUSAL_UPDATE=10013;
+//str: legacy name|arousal
+
+
+//other
+string STRING_NEW_LINE="\n";
+string PATH_SEPARATOR=":";
+integer BUTTON_MAX_LENGHT=16;
+string MENU_BUTTON_BACK ="^";
