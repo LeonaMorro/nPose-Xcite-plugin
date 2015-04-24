@@ -1,4 +1,4 @@
-$import LSLScripts.constants.lslm ();
+$import LSLScripts.constantsXcitePlugin.lslm ();
 
 string PLUGIN_NAME="XCITE_CORE";
 
@@ -47,12 +47,7 @@ string STRING_OFF="OFF";
 string MENU_BUTTON_SWITCH_ON="activate";
 string MENU_BUTTON_SWITCH_OFF="deactivate";
 
-
-// using the NPosePath and NPoseButtonName as a global string instead of storing it for every user, means
-// that there can only be one RLV button in the menu tree. That seems to be OK for me.
-string NPosePath;
-string NPoseButtonName;
-
+list CARD_NAMES=["DEFAULT", "SET", "BTN", "SEQ"];
 
 // NO pragma inline
 debug(list message) {
@@ -91,34 +86,32 @@ key avatarUuidFromAvatarUuidOrSeatnumber(string uuidOrSeatNumber) {
 	return NULL_KEY;
 }
 
-showMenu(key menuTarget, string menuName) {
-	if(menuName=="" || menuName==MENU_MAIN) {
+showMenu(key menuTarget, string basePath, string localPath) {
+	string menuName=llList2String(llParseStringKeepNulls(localPath, [PATH_SEPARATOR], []), -1);
+	if(menuName=="") {
 		renderMenu(
 			menuTarget,
+			basePath,
+			localPath,
 			STRING_MENU_MAIN_PROMPT + conditionalString(PLUGIN_IS_DISABLED, STRING_OFF, STRING_ON),
-			[conditionalString(PLUGIN_IS_DISABLED, MENU_BUTTON_SWITCH_ON, MENU_BUTTON_SWITCH_OFF)],
-			MENU_MAIN
+			[conditionalString(PLUGIN_IS_DISABLED, MENU_BUTTON_SWITCH_ON, MENU_BUTTON_SWITCH_OFF)]
 		);
 	}
 }
 
 // NO pragma inline
-renderMenu(key targetKey, string prompt, list buttons, string menuPath) {
+renderMenu(key targetKey, string basePath, string localPath, string prompt, list buttons) {
 	if(targetKey) {
-		//make the path global
-		menuPath=NPosePath + PATH_SEPARATOR + NPoseButtonName + llDeleteSubString(menuPath, 0, llStringLength(MENU_MAIN)-1);
 		llMessageLinked( LINK_SET, DIALOG,
 			(string)targetKey
-			+ "|" +
-			prompt + STRING_NEW_LINE + menuPath + STRING_NEW_LINE
-			+ "|" +
-			(string)0
-			+ "|" +
-			llDumpList2String(buttons, "`")
-			+ "|" +
-			MENU_BUTTON_BACK
-			+ "|" +
-			menuPath
+			+ "|"
+			+ prompt + STRING_NEW_LINE + STRING_NEW_LINE + basePath + localPath + STRING_NEW_LINE
+			+ "|0|"
+			+ llDumpList2String(buttons, "`")
+			+ "|"
+			+ conditionalString(basePath!="" || localPath!="", MENU_BUTTON_BACK, "")
+			+ "|"
+			+ basePath + "," + localPath
 			, MyUniqueId
 		);
 	}
@@ -139,62 +132,58 @@ string conditionalString(integer conditon, string valueIfTrue, string valueIfFal
 	return ret;
 }
 
+// pragma inline
+string getPathFromCardName(string cardName) {
+	list pathParts=llParseStringKeepNulls(cardName, [PATH_SEPARATOR], []);
+	if(~llListFindList(CARD_NAMES, [llList2String(pathParts, 0)])) {
+		pathParts="Main" + llDeleteSubList(pathParts, 0, 0);
+	}
+	integer index=llSubStringIndex(llList2String(pathParts, -1), "{");
+	if(~index) {
+		pathParts=llDeleteSubList(pathParts, -1, -1) + llDeleteSubString(llList2String(pathParts, -1), index, -1);
+	}
+	return llDumpList2String(pathParts, PATH_SEPARATOR);
+}
+
+
 
 default {
 	state_entry() {
 		MyUniqueId=llGenerateKey();
 	}
 	link_message(integer sender_num, integer num, string str, key id) {
-		if( num == -802) {
-			NPosePath=str;
-			NPoseButtonName=MENU_MAIN;
-		}
-		else if(num==DIALOG_RESPONSE) {
+		if(num==DIALOG_RESPONSE) {
 			if(id==MyUniqueId) {
 				//its for me
 				list params = llParseString2List(str, ["|"], []);
 				string selection = llList2String(params, 1);
 				key toucher=(key)llList2String(params, 2);
-				string path=llList2String(params, 3);
-				//make the path local
-				if(!llSubStringIndex(path, NPosePath + PATH_SEPARATOR)) {
-					path=llDeleteSubString(path, 0, llStringLength(NPosePath + PATH_SEPARATOR) - 1);
-				}
-				if(!llSubStringIndex(path, NPoseButtonName)) {
-					path=MENU_MAIN + llDeleteSubString(path, 0, llStringLength(NPoseButtonName) - 1);
-				}
-				list pathParts = llParseString2List( path, [PATH_SEPARATOR], [] );
+				list tempPath=llParseStringKeepNulls(llList2String(params, 3), [","], []);
+				string basePath=llList2String(tempPath, 0);
+				string localPath=llList2String(tempPath, 1);
+				list localPathParts=llParseStringKeepNulls(localPath, [PATH_SEPARATOR], []);
 				if(selection == MENU_BUTTON_BACK) {
 					// back button hit
-					selection=llList2String(pathParts, -2);
-					if(path==MENU_MAIN) {
-						//Path is at root menu, remenu nPose
-						llMessageLinked( LINK_SET, DOMENU, NPosePath, toucher);
-						return;
-					}
-					else if(selection==MENU_MAIN) {
-						//the menu changed to the Main/Root Menu, show it
-						showMenu(toucher, MENU_MAIN);
-						return;
+					if(localPath=="") {
+						//localPath is at root menu, remenu nPose
+						basePath=llDumpList2String(llDeleteSubList(llParseStringKeepNulls(basePath, [PATH_SEPARATOR], []), -1, -1), PATH_SEPARATOR);
+						if(basePath) {
+							llMessageLinked( LINK_SET, DOMENU, basePath, toucher);
+						}
 					}
 					else {
-						//the menu changed to a menu below the Main Menu, correct the path and selection and continue in this event
-						pathParts=llDeleteSubList(pathParts, -2, -1);
-						path = llDumpList2String(pathParts, PATH_SEPARATOR);
+						//the menu changed to a menu within our plugin
+						showMenu(toucher, basePath, llDumpList2String(llDeleteSubList(localPathParts, -1, -1), PATH_SEPARATOR));
 					}
 				}
-debug([path, selection]);
-				if(selection==MENU_MAIN) {
-					showMenu(toucher, MENU_MAIN);
-				}
-				else if(path==MENU_MAIN) {
+				else if(localPath=="") {
 					if(selection==MENU_BUTTON_SWITCH_OFF) {
 						PLUGIN_IS_DISABLED=TRUE;
 					}
 					else if(selection==MENU_BUTTON_SWITCH_ON) {
 						PLUGIN_IS_DISABLED=FALSE;
 					}
-					showMenu(toucher, MENU_MAIN);
+					showMenu(toucher, basePath, localPath);
 				}
 			}
 		}
@@ -253,7 +242,7 @@ debug([path, selection]);
 			}
 			
 			else if(cmd==XCITE_COMMAND_SHOW_MENU) {
-				showMenu(avatarUuidFromAvatarUuidOrSeatnumber(llList2String(params, 0)), llList2String(params, 1));
+				showMenu(avatarUuidFromAvatarUuidOrSeatnumber(llList2String(params, 0)), getPathFromCardName(llList2String(params, 1)), llList2String(params, 2));
 			}
 		}
 		else if(num==SEAT_UPDATE) {

@@ -1,4 +1,4 @@
-// LSL script generated - patched Render.hs (0.1.6.2): LSLScripts.nPose Xcite!.lslp Tue Apr 14 19:14:57 Mitteleuropäische Sommerzeit 2015
+// LSL script generated - patched Render.hs (0.1.6.2): LSLScripts.nPose Xcite!.lslp Fri Apr 24 19:19:47 Mitteleuropäische Sommerzeit 2015
 
 string STRING_NEW_LINE = "\n";
 string PATH_SEPARATOR = ":";
@@ -19,8 +19,6 @@ string MESSAGE_MINOR_SEPARATOR = "/";
 string RULE_AND = "~";
 string XCITE_SEPARATOR = "|";
 
-string MENU_MAIN = "XciteMain";
-
 key MyUniqueId;
 
 integer PLUGIN_IS_DISABLED;
@@ -32,12 +30,7 @@ string STRING_OFF = "OFF";
 string MENU_BUTTON_SWITCH_ON = "activate";
 string MENU_BUTTON_SWITCH_OFF = "deactivate";
 
-
-// using the NPosePath and NPoseButtonName as a global string instead of storing it for every user, means
-// that there can only be one RLV button in the menu tree. That seems to be OK for me.
-string NPosePath;
-string NPoseButtonName;
-
+list CARD_NAMES = ["DEFAULT","SET","BTN","SEQ"];
 
 // NO pragma inline
 debug(list message){
@@ -71,17 +64,17 @@ key avatarUuidFromAvatarUuidOrSeatnumber(string uuidOrSeatNumber){
     return NULL_KEY;
 }
 
-showMenu(key menuTarget,string menuName){
-    if (menuName == "" || menuName == MENU_MAIN) {
-        renderMenu(menuTarget,STRING_MENU_MAIN_PROMPT + conditionalString(PLUGIN_IS_DISABLED,STRING_OFF,STRING_ON),[conditionalString(PLUGIN_IS_DISABLED,MENU_BUTTON_SWITCH_ON,MENU_BUTTON_SWITCH_OFF)],MENU_MAIN);
+showMenu(key menuTarget,string basePath,string localPath){
+    string menuName = llList2String(llParseStringKeepNulls(localPath,[PATH_SEPARATOR],[]),-1);
+    if (menuName == "") {
+        renderMenu(menuTarget,basePath,localPath,STRING_MENU_MAIN_PROMPT + conditionalString(PLUGIN_IS_DISABLED,STRING_OFF,STRING_ON),[conditionalString(PLUGIN_IS_DISABLED,MENU_BUTTON_SWITCH_ON,MENU_BUTTON_SWITCH_OFF)]);
     }
 }
 
 // NO pragma inline
-renderMenu(key targetKey,string prompt,list buttons,string menuPath){
+renderMenu(key targetKey,string basePath,string localPath,string prompt,list buttons){
     if (targetKey) {
-        menuPath = NPosePath + PATH_SEPARATOR + NPoseButtonName + llDeleteSubString(menuPath,0,llStringLength(MENU_MAIN) - 1);
-        llMessageLinked(-1,-900,(string)targetKey + "|" + prompt + STRING_NEW_LINE + menuPath + STRING_NEW_LINE + "|" + "0" + "|" + llDumpList2String(buttons,"`") + "|" + MENU_BUTTON_BACK + "|" + menuPath,MyUniqueId);
+        llMessageLinked(-1,-900,(string)targetKey + "|" + prompt + STRING_NEW_LINE + STRING_NEW_LINE + basePath + localPath + STRING_NEW_LINE + "|0|" + llDumpList2String(buttons,"`") + "|" + conditionalString(basePath != "" || localPath != "",MENU_BUTTON_BACK,"") + "|" + basePath + "," + localPath,MyUniqueId);
     }
 }
 
@@ -101,6 +94,7 @@ string conditionalString(integer conditon,string valueIfTrue,string valueIfFalse
 }
 
 
+
 default {
 
 	state_entry() {
@@ -108,50 +102,34 @@ default {
     }
 
 	link_message(integer sender_num,integer num,string str,key id) {
-        if (num == -802) {
-            NPosePath = str;
-            NPoseButtonName = MENU_MAIN;
-        }
-        else  if (num == -901) {
+        if (num == -901) {
             if (id == MyUniqueId) {
                 list params = llParseString2List(str,["|"],[]);
                 string selection = llList2String(params,1);
                 key toucher = (key)llList2String(params,2);
-                string path = llList2String(params,3);
-                if (!llSubStringIndex(path,NPosePath + PATH_SEPARATOR)) {
-                    path = llDeleteSubString(path,0,llStringLength(NPosePath + PATH_SEPARATOR) - 1);
-                }
-                if (!llSubStringIndex(path,NPoseButtonName)) {
-                    path = MENU_MAIN + llDeleteSubString(path,0,llStringLength(NPoseButtonName) - 1);
-                }
-                list pathParts = llParseString2List(path,[PATH_SEPARATOR],[]);
+                list tempPath = llParseStringKeepNulls(llList2String(params,3),[","],[]);
+                string basePath = llList2String(tempPath,0);
+                string localPath = llList2String(tempPath,1);
+                list localPathParts = llParseStringKeepNulls(localPath,[PATH_SEPARATOR],[]);
                 if (selection == MENU_BUTTON_BACK) {
-                    selection = llList2String(pathParts,-2);
-                    if (path == MENU_MAIN) {
-                        llMessageLinked(-1,-800,NPosePath,toucher);
-                        return;
-                    }
-                    else  if (selection == MENU_MAIN) {
-                        showMenu(toucher,MENU_MAIN);
-                        return;
+                    if (localPath == "") {
+                        basePath = llDumpList2String(llDeleteSubList(llParseStringKeepNulls(basePath,[PATH_SEPARATOR],[]),-1,-1),PATH_SEPARATOR);
+                        if (basePath) {
+                            llMessageLinked(-1,-800,basePath,toucher);
+                        }
                     }
                     else  {
-                        pathParts = llDeleteSubList(pathParts,-2,-1);
-                        path = llDumpList2String(pathParts,PATH_SEPARATOR);
+                        showMenu(toucher,basePath,llDumpList2String(llDeleteSubList(localPathParts,-1,-1),PATH_SEPARATOR));
                     }
                 }
-                debug([path,selection]);
-                if (selection == MENU_MAIN) {
-                    showMenu(toucher,MENU_MAIN);
-                }
-                else  if (path == MENU_MAIN) {
+                else  if (localPath == "") {
                     if (selection == MENU_BUTTON_SWITCH_OFF) {
                         PLUGIN_IS_DISABLED = 1;
                     }
                     else  if (selection == MENU_BUTTON_SWITCH_ON) {
                         PLUGIN_IS_DISABLED = 0;
                     }
-                    showMenu(toucher,MENU_MAIN);
+                    showMenu(toucher,basePath,localPath);
                 }
             }
         }
@@ -200,7 +178,15 @@ default {
                 }
             }
             else  if (cmd == XCITE_COMMAND_SHOW_MENU) {
-                showMenu(avatarUuidFromAvatarUuidOrSeatnumber(llList2String(params,0)),llList2String(params,1));
+                list pathParts = llParseStringKeepNulls(llList2String(params,1),[PATH_SEPARATOR],[]);
+                if (~llListFindList(CARD_NAMES,[llList2String(pathParts,0)])) {
+                    pathParts = "Main" + llDeleteSubList(pathParts,0,0);
+                }
+                integer index = llSubStringIndex(llList2String(pathParts,-1),"{");
+                if (~index) {
+                    pathParts = llDeleteSubList(pathParts,-1,-1) + llDeleteSubString(llList2String(pathParts,-1),index,-1);
+                }
+                showMenu(avatarUuidFromAvatarUuidOrSeatnumber(llList2String(params,0)),llDumpList2String(pathParts,PATH_SEPARATOR),llList2String(params,2));
             }
         }
         else  if (num == 35353) {
