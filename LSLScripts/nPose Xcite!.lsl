@@ -1,4 +1,4 @@
-// LSL script generated - patched Render.hs (0.1.6.2): LSLScripts.nPose Xcite!.lslp Mon Aug  3 18:44:26 Mitteleuropäische Sommerzeit 2015
+// LSL script generated - patched Render.hs (0.1.6.2): LSLScripts.nPose Xcite!.lslp Tue Aug  4 11:08:53 Mitteleuropäische Sommerzeit 2015
 
 string STRING_NEW_LINE = "\n";
 string PATH_SEPARATOR = ":";
@@ -16,7 +16,7 @@ list SlotsList;
 
 list ArousalUpdatesList;
 string MESSAGE_MINOR_SEPARATOR = "/";
-string RULE_AND = "~";
+string RULE_AND = "&";
 string XCITE_SEPARATOR = "|";
 
 key MyUniqueId;

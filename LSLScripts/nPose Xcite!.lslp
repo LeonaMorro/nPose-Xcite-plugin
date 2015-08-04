@@ -29,7 +29,7 @@ integer AROUSAL_UPDATES_STRIDE=3;
 string SLOT_LIST_SEPARATOR="^";
 string MESSAGE_MINOR_SEPARATOR="/";
 string RULE_NOT="!";
-string RULE_AND="~";
+string RULE_AND="&";
 string XCITE_SEPARATOR="|";
 
 float XCITE_UPDATE_INTERVALL=5.0;
