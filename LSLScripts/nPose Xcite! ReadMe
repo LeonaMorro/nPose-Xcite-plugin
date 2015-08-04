@@ -1,0 +1,29 @@
+Requirements and notes
+- you also need the Xcite! Partner script to make this run
+- so you have to be a Xcite! Partner
+- I will not offer support to non Xcite! Partners
+- I may change the API at any time, so don't expect any backward compatibility
+- If you are using this you should consider to give something back to the community
+
+Source Code:
+https://github.com/LeonaMorro/nPose-Xcite-plugin
+
+Documentation:
+https://github.com/LeonaMorro/nPose-Xcite-plugin/wiki
+
+Report Bugs to:
+https://github.com/LeonaMorro/nPose-Xcite-plugin/issues
+or IM slmember1 Resident (Leona)
+
+
+
+These scripts are licensed under the GPLv2 (http://www.gnu.org/licenses/gpl-2.0.txt), with the following addendum:
+
+These scripts are free to be copied, modified, and redistributed, subject to the following conditions:
+- If you distribute these scripts, you must leave them full perms.
+- If you modify these scripts and distribute the modifications, you must also make your modifications full perms.
+
+"Full perms" means having the modify, copy, and transfer permissions enabled in Second Life 
+and/or other virtual world platforms derived from Second Life (such as OpenSim).
+If the platform should allow more fine-grained permissions, then "full perms" will mean
+the most permissive possible set of permissions allowed by the platform.
