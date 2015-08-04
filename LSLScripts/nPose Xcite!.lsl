@@ -1,4 +1,4 @@
-// LSL script generated - patched Render.hs (0.1.6.2): LSLScripts.nPose Xcite!.lslp Fri Apr 24 19:19:47 Mitteleuropäische Sommerzeit 2015
+// LSL script generated - patched Render.hs (0.1.6.2): LSLScripts.nPose Xcite!.lslp Mon Aug  3 18:44:26 Mitteleuropäische Sommerzeit 2015
 
 string STRING_NEW_LINE = "\n";
 string PATH_SEPARATOR = ":";
