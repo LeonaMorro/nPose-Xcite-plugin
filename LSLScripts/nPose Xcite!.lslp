@@ -1,6 +1,7 @@
 $import LSLScripts.constantsXcitePlugin.lslm ();
 
 string PLUGIN_NAME="XCITE_CORE";
+string XCITE_UDP_NAME="xcite";
 
 string XCITE_COMMAND_SHOW_MENU="showmenu";
 string XCITE_COMMAND_ADD_AROUSAL="addarousal";
@@ -36,9 +37,7 @@ float XCITE_UPDATE_INTERVALL=5.0;
 
 string MENU_MAIN="XciteMain";
 
-key	MyUniqueId;
-
-integer PLUGIN_IS_DISABLED;
+integer PluginDisabled;
 
 string STRING_MENU_MAIN_PROMPT="Xcite! is currently ";
 string STRING_ON="ON";
@@ -86,39 +85,8 @@ key avatarUuidFromAvatarUuidOrSeatnumber(string uuidOrSeatNumber) {
 	return NULL_KEY;
 }
 
-showMenu(key menuTarget, string basePath, string localPath) {
-	string menuName=llList2String(llParseStringKeepNulls(localPath, [PATH_SEPARATOR], []), -1);
-	if(menuName=="") {
-		renderMenu(
-			menuTarget,
-			basePath,
-			localPath,
-			STRING_MENU_MAIN_PROMPT + conditionalString(PLUGIN_IS_DISABLED, STRING_OFF, STRING_ON),
-			[conditionalString(PLUGIN_IS_DISABLED, MENU_BUTTON_SWITCH_ON, MENU_BUTTON_SWITCH_OFF)]
-		);
-	}
-}
-
-// NO pragma inline
-renderMenu(key targetKey, string basePath, string localPath, string prompt, list buttons) {
-	if(targetKey) {
-		llMessageLinked( LINK_SET, DIALOG,
-			(string)targetKey
-			+ "|"
-			+ prompt + STRING_NEW_LINE + STRING_NEW_LINE + basePath + localPath + STRING_NEW_LINE
-			+ "|0|"
-			+ llDumpList2String(buttons, "`")
-			+ "|"
-			+ conditionalString(basePath!="" || localPath!="", MENU_BUTTON_BACK, "")
-			+ "|"
-			+ basePath + "," + localPath
-			, MyUniqueId
-		);
-	}
-}
-
 sendToXcite(integer num, list params) {
-	if(!PLUGIN_IS_DISABLED) {
+	if(!PluginDisabled) {
 		llMessageLinked(LINK_SET, num, llDumpList2String(params, XCITE_SEPARATOR), NULL_KEY);
 	}
 }
@@ -132,62 +100,11 @@ string conditionalString(integer conditon, string valueIfTrue, string valueIfFal
 	return ret;
 }
 
-// pragma inline
-string getPathFromCardName(string cardName) {
-	list pathParts=llParseStringKeepNulls(cardName, [PATH_SEPARATOR], []);
-	if(~llListFindList(CARD_NAMES, [llList2String(pathParts, 0)])) {
-		pathParts="Main" + llDeleteSubList(pathParts, 0, 0);
-	}
-	integer index=llSubStringIndex(llList2String(pathParts, -1), "{");
-	if(~index) {
-		pathParts=llDeleteSubList(pathParts, -1, -1) + llDeleteSubString(llList2String(pathParts, -1), index, -1);
-	}
-	return llDumpList2String(pathParts, PATH_SEPARATOR);
-}
-
-
-
 default {
 	state_entry() {
-		MyUniqueId=llGenerateKey();
 	}
 	link_message(integer sender_num, integer num, string str, key id) {
-		if(num==DIALOG_RESPONSE) {
-			if(id==MyUniqueId) {
-				//its for me
-				list params = llParseString2List(str, ["|"], []);
-				string selection = llList2String(params, 1);
-				key toucher=(key)llList2String(params, 2);
-				list tempPath=llParseStringKeepNulls(llList2String(params, 3), [","], []);
-				string basePath=llList2String(tempPath, 0);
-				string localPath=llList2String(tempPath, 1);
-				list localPathParts=llParseStringKeepNulls(localPath, [PATH_SEPARATOR], []);
-				if(selection == MENU_BUTTON_BACK) {
-					// back button hit
-					if(localPath=="") {
-						//localPath is at root menu, remenu nPose
-						basePath=llDumpList2String(llDeleteSubList(llParseStringKeepNulls(basePath, [PATH_SEPARATOR], []), -1, -1), PATH_SEPARATOR);
-						if(basePath) {
-							llMessageLinked( LINK_SET, DOMENU, basePath, toucher);
-						}
-					}
-					else {
-						//the menu changed to a menu within our plugin
-						showMenu(toucher, basePath, llDumpList2String(llDeleteSubList(localPathParts, -1, -1), PATH_SEPARATOR));
-					}
-				}
-				else if(localPath=="") {
-					if(selection==MENU_BUTTON_SWITCH_OFF) {
-						PLUGIN_IS_DISABLED=TRUE;
-					}
-					else if(selection==MENU_BUTTON_SWITCH_ON) {
-						PLUGIN_IS_DISABLED=FALSE;
-					}
-					showMenu(toucher, basePath, localPath);
-				}
-			}
-		}
-		else if(num==XCITE_COMMAND) {
+		if(num==XCITE_COMMAND) {
 			list params=llParseStringKeepNulls(str, [","], []);
 			string cmd=llToLower(llStringTrim(llList2String(params, 0), STRING_TRIM));
 			params=llDeleteSubList(params, 0, 0);
@@ -240,9 +157,21 @@ default {
 					}
 				}
 			}
-			
-			else if(cmd==XCITE_COMMAND_SHOW_MENU) {
-				showMenu(avatarUuidFromAvatarUuidOrSeatnumber(llList2String(params, 0)), getPathFromCardName(llList2String(params, 1)), llList2String(params, 2));
+		}
+		else if(num == UDPBOOL) {
+			//check for xcite udp
+			list optionsToSet = llParseStringKeepNulls(str, ["~","|"], []);
+			integer length = llGetListLength(optionsToSet);
+			integer index;
+			for(; index<length; ++index) {
+				list optionsItems = llParseString2List(llList2String(optionsToSet, index), ["="], []);
+				string optionItem = llToLower(llStringTrim(llList2String(optionsItems, 0), STRING_TRIM));
+				if(optionItem==XCITE_UDP_NAME) {
+					string optionString = llList2String(optionsItems, 1);
+					string optionSetting = llToLower(llStringTrim(optionString, STRING_TRIM));
+					integer optionSettingFlag = optionSetting=="on" || (integer)optionSetting;
+					PluginDisabled=!optionSettingFlag;
+				}
 			}
 		}
 		else if(num==SEAT_UPDATE) {

@@ -10,6 +10,8 @@ integer XCITE_DUMP_DEBUG_STRING=-8048;
 integer SEAT_UPDATE=35353;
 integer MEM_USAGE=34334;
 
+integer UDPBOOL=-804;
+
 
 integer XCITEQ_ADD_AROUSAL=20001;
 //str: legacy name|value|maximum arousal|text, see below for placeholders|kink(string: more infos needed)
